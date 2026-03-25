@@ -10,12 +10,8 @@ services:
     name: singularity
     runtime: elixir
     plan: free
-    buildCommand: |
-      mix deps.get --only prod
-      MIX_ENV=prod mix compile
-      MIX_ENV=prod mix assets.deploy
-      MIX_ENV=prod mix release
-    startCommand: _build/prod/rel/singularity/bin/migrate && _build/prod/rel/singularity/bin/server
+    buildCommand: "mix deps.get && mix compile && mix assets.deploy"
+    startCommand: "mix ecto.migrate && mix phx.server"
     envVars:
       - key: MIX_ENV
         value: "prod"
