@@ -94,7 +94,7 @@ defmodule SingularityWeb.SharedLive do
           <div class="space-y-2">
             <div :for={perm <- @shared_with_me} class="card bg-base-200">
               <div class="card-body py-3 px-4 flex-row items-center gap-3">
-                <.icon name="hero-folder" class="size-5 opacity-60" />
+                <.icon name="hero-document" class="size-5 opacity-60" />
                 <div class="flex-1">
                   <p class="font-medium text-sm">{perm.resource_name}</p>
                   <p class="text-xs text-base-content/40">
@@ -116,7 +116,7 @@ defmodule SingularityWeb.SharedLive do
           <div class="space-y-2">
             <div :for={perm <- @my_grants} class="card bg-base-200">
               <div class="card-body py-3 px-4 flex-row items-center gap-3">
-                <.icon name="hero-folder" class="size-5 opacity-60" />
+                <.icon name="hero-document" class="size-5 opacity-60" />
                 <div class="flex-1">
                   <p class="font-medium text-sm">{perm.resource_name}</p>
                   <p class="text-xs text-base-content/40">

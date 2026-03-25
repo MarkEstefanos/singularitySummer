@@ -10,17 +10,17 @@ defmodule Singularity.Ingestion do
   @handlers [TextHandler, GenericHandler]
 
   @doc """
-  Ingest a file into a user's collection.
+  Ingest a file into a user's vault.
 
   Accepts a map with:
     - path: path to the uploaded file
     - name: original filename
     - content_type: MIME type
-    - collection_id: target collection
     - user_id: owning user
+    - collection_id: (optional) target collection
+    - folder_path: (optional) folder path for organization
   """
-  def ingest(%{path: path, name: name, content_type: content_type,
-               collection_id: collection_id, user_id: user_id}) do
+  def ingest(%{path: path, name: name, content_type: content_type, user_id: user_id} = params) do
     handler = find_handler(content_type)
 
     with {:ok, extraction} <- handler.extract(path, content_type),
@@ -32,7 +32,8 @@ defmodule Singularity.Ingestion do
            storage_path: storage_path,
            metadata: extraction.metadata,
            extracted_text: extraction.extracted_text,
-           collection_id: collection_id,
+           collection_id: Map.get(params, :collection_id),
+           folder_path: Map.get(params, :folder_path),
            user_id: user_id
          }) do
       # TODO: Generate embedding from extracted_text asynchronously

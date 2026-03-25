@@ -11,14 +11,14 @@ defmodule SingularityWeb.DashboardLive do
       Phoenix.PubSub.subscribe(Singularity.PubSub, "feed:#{user_id}")
     end
 
-    collections = Vault.list_collections(user_id)
+    items = Vault.list_items_for_user(user_id)
     agents = Agents.list_agents(user_id)
     recent_events = Feed.list_events(user_id, limit: 5)
 
     {:ok,
      assign(socket,
        page_title: "Dashboard",
-       collections: collections,
+       items: items,
        agents: agents,
        recent_events: recent_events
      )}
@@ -41,10 +41,10 @@ defmodule SingularityWeb.DashboardLive do
         <div class="stats shadow w-full">
           <div class="stat">
             <div class="stat-figure text-primary">
-              <.icon name="hero-archive-box" class="size-8" />
+              <.icon name="hero-document-duplicate" class="size-8" />
             </div>
-            <div class="stat-title">Collections</div>
-            <div class="stat-value text-primary">{length(@collections)}</div>
+            <div class="stat-title">Files</div>
+            <div class="stat-value text-primary">{length(@items)}</div>
           </div>
           <div class="stat">
             <div class="stat-figure text-secondary">
@@ -87,7 +87,7 @@ defmodule SingularityWeb.DashboardLive do
               </h2>
               <div class="flex flex-col gap-2">
                 <.link navigate={~p"/vault"} class="btn btn-primary btn-sm justify-start gap-2">
-                  <.icon name="hero-plus" class="size-4" /> New Collection
+                  <.icon name="hero-cloud-arrow-up" class="size-4" /> Upload Files
                 </.link>
                 <.link navigate={~p"/agents"} class="btn btn-secondary btn-sm justify-start gap-2">
                   <.icon name="hero-plus" class="size-4" /> New Agent
