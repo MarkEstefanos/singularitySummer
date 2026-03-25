@@ -9,7 +9,7 @@ defmodule Singularity.Accounts.UserNotifier do
     email =
       new()
       |> to(recipient)
-      |> from({"Singularity", "contact@example.com"})
+      |> from({"Singularity", System.get_env("MAIL_FROM", "onboarding@resend.dev")})
       |> subject(subject)
       |> text_body(body)
 
