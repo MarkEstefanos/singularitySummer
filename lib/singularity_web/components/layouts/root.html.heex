@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="csrf-token" content={get_csrf_token()} />
+    <.live_title default="Singularity" suffix=" · Phoenix Framework">
+      {assigns[:page_title]}
+    </.live_title>
+    <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
+    <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
+    </script>
+    <script>
+      (() => {
+        const setTheme = (theme) => {
+          if (theme === "system") {
+            localStorage.removeItem("phx:theme");
+            document.documentElement.removeAttribute("data-theme");
+          } else {
+            localStorage.setItem("phx:theme", theme);
+            document.documentElement.setAttribute("data-theme", theme);
+          }
+        };
+        if (!document.documentElement.hasAttribute("data-theme")) {
+          setTheme(localStorage.getItem("phx:theme") || "system");
+        }
+        window.addEventListener("storage", (e) => e.key === "phx:theme" && setTheme(e.newValue || "system"));
+        
+        window.addEventListener("phx:set-theme", (e) => setTheme(e.target.dataset.phxTheme));
+      })();
+    </script>
+  </head>
+  <body class="h-screen">
+    <%= if @current_scope do %>
+      <div class="drawer lg:drawer-open h-full">
+        <input id="sidebar-toggle" type="checkbox" class="drawer-toggle" />
+        <div class="drawer-content flex flex-col">
+          <!-- Top bar for mobile -->
+          <div class="navbar bg-base-200 lg:hidden">
+            <div class="flex-none">
+              <label for="sidebar-toggle" class="btn btn-square btn-ghost drawer-button">
+                <.icon name="hero-bars-3" class="size-5" />
+              </label>
+            </div>
+            <div class="flex-1">
+              <span class="text-lg font-bold px-2">Singularity</span>
+            </div>
+          </div>
+          <!-- Main content -->
+          <div class="flex-1 overflow-y-auto">
+            {@inner_content}
+          </div>
+        </div>
+        <div class="drawer-side">
+          <label for="sidebar-toggle" aria-label="close sidebar" class="drawer-overlay"></label>
+          <aside class="bg-base-200 min-h-full w-64 flex flex-col">
+            <div class="p-4">
+              <span class="text-xl font-bold">Singularity</span>
+            </div>
+            <ul class="menu flex-1 px-2">
+              <li>
+                <.link navigate={~p"/dashboard"} class="gap-3">
+                  <.icon name="hero-home" class="size-5" /> Dashboard
+                </.link>
+              </li>
+              <li>
+                <.link navigate={~p"/vault"} class="gap-3">
+                  <.icon name="hero-archive-box" class="size-5" /> Vault
+                </.link>
+              </li>
+              <li>
+                <.link navigate={~p"/agents"} class="gap-3">
+                  <.icon name="hero-cpu-chip" class="size-5" /> Agents
+                </.link>
+              </li>
+              <li>
+                <.link navigate={~p"/feed"} class="gap-3">
+                  <.icon name="hero-bell" class="size-5" /> Feed
+                </.link>
+              </li>
+              <li>
+                <.link navigate={~p"/shared"} class="gap-3">
+                  <.icon name="hero-share" class="size-5" /> Shared with Me
+                </.link>
+              </li>
+            </ul>
+            <div class="p-4 border-t border-base-300">
+              <div class="flex items-center gap-3">
+                <div class="avatar placeholder">
+                  <div class="bg-neutral text-neutral-content rounded-full w-8">
+                    <span class="text-xs">
+                      {String.first(@current_scope.user.email) |> String.upcase()}
+                    </span>
+                  </div>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm truncate">{@current_scope.user.email}</p>
+                </div>
+                <div class="dropdown dropdown-top dropdown-end">
+                  <div tabindex="0" role="button" class="btn btn-ghost btn-xs">
+                    <.icon name="hero-ellipsis-vertical" class="size-4" />
+                  </div>
+                  <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-10 w-40 p-2 shadow">
+                    <li><.link navigate={~p"/users/settings"}>Settings</.link></li>
+                    <li><.link href={~p"/users/log-out"} method="delete">Log out</.link></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    <% else %>
+      <div class="navbar bg-base-200 px-4">
+        <div class="flex-1">
+          <span class="text-xl font-bold">Singularity</span>
+        </div>
+        <div class="flex-none gap-2">
+          <.link href={~p"/users/register"} class="btn btn-ghost btn-sm">Register</.link>
+          <.link href={~p"/users/log-in"} class="btn btn-primary btn-sm">Log in</.link>
+        </div>
+      </div>
+      {@inner_content}
+    <% end %>
+  </body>
+</html>
