@@ -45,7 +45,7 @@ defmodule SingularityWeb.FeedLive do
 
         <div :if={@events == []} class="text-base-content/60 py-12 text-center">
           <.icon name="hero-bell" class="size-12 mx-auto mb-4 opacity-40" />
-          <p>No activity yet. Upload data, share collections, or run agents to see events here.</p>
+          <p>No activity yet. Upload files, share with circles, or run agents to see events here.</p>
         </div>
 
         <div class="space-y-2">
