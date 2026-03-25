@@ -8,10 +8,21 @@ databases:
 services:
   - type: web
     name: singularity
-    runtime: docker
+    runtime: elixir
     plan: free
-    healthCheckPath: /
+    buildCommand: |
+      mix deps.get --only prod
+      MIX_ENV=prod mix compile
+      MIX_ENV=prod mix assets.deploy
+      MIX_ENV=prod mix release
+    startCommand: _build/prod/rel/singularity/bin/migrate && _build/prod/rel/singularity/bin/server
     envVars:
+      - key: MIX_ENV
+        value: "prod"
+      - key: ELIXIR_VERSION
+        value: "1.19.4"
+      - key: ERLANG_VERSION
+        value: "28.2"
       - key: PHX_HOST
         fromRenderService:
           type: web
