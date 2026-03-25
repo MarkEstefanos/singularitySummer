@@ -62,6 +62,7 @@ defmodule SingularityWeb.Router do
       live "/agents/:id", AgentsLive.Chat
       live "/feed", FeedLive
       live "/shared", SharedLive
+      live "/circles", CirclesLive.Index
     end
 
     post "/users/update-password", UserSessionController, :update_password

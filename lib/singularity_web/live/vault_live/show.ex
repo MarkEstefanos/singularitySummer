@@ -1,7 +1,7 @@
 defmodule SingularityWeb.VaultLive.Show do
   use SingularityWeb, :live_view
 
-  alias Singularity.{Vault, Ingestion, Feed}
+  alias Singularity.{Vault, Ingestion, Feed, Circles}
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
@@ -13,6 +13,8 @@ defmodule SingularityWeb.VaultLive.Show do
       {:ok, push_navigate(socket, to: ~p"/vault")}
     else
       items = Vault.list_items(collection.id)
+      circles = Circles.list_circles(user_id)
+      shares = Circles.list_shares_for_resource("collection", collection.id)
 
       {:ok,
        socket
@@ -20,8 +22,9 @@ defmodule SingularityWeb.VaultLive.Show do
          page_title: collection.name,
          collection: collection,
          items: items,
-         show_share_modal: false,
-         share_email: ""
+         circles: circles,
+         shares: shares,
+         show_share_modal: false
        )
        |> allow_upload(:file,
          accept: :any,
@@ -90,43 +93,43 @@ defmodule SingularityWeb.VaultLive.Show do
     {:noreply, assign(socket, show_share_modal: !socket.assigns.show_share_modal)}
   end
 
-  def handle_event("share-collection", %{"email" => email, "access_level" => level}, socket) do
-    alias Singularity.{Accounts, Permissions}
-    user_id = socket.assigns.current_scope.user.id
+  def handle_event("share-with-circle", %{"circle_id" => circle_id, "access_level" => level}, socket) do
     collection = socket.assigns.collection
+    user_id = socket.assigns.current_scope.user.id
 
-    case Accounts.get_user_by_email(email) do
-      nil ->
-        {:noreply, put_flash(socket, :error, "User not found")}
+    case Circles.share_with_circle(%{
+           circle_id: circle_id,
+           resource_type: "collection",
+           resource_id: collection.id,
+           access_level: level
+         }) do
+      {:ok, _} ->
+        circle = Circles.get_circle!(circle_id)
+        member_ids = Enum.map(circle.members, & &1.id)
 
-      grantee ->
-        case Permissions.grant_access(%{
-               grantor_id: user_id,
-               grantee_id: grantee.id,
-               resource_type: "collection",
-               resource_id: collection.id,
-               access_level: level
-             }) do
-          {:ok, _} ->
-            Feed.publish(%{
-              verb: "permission_granted",
-              summary: "Shared #{collection.name} with #{email} (#{level})",
-              actor_type: "user",
-              actor_id: user_id,
-              object_type: "collection",
-              object_id: collection.id,
-              audience: [user_id, grantee.id]
-            })
+        Feed.publish(%{
+          verb: "shared",
+          summary: "Shared #{collection.name} with circle #{circle.name} (#{level})",
+          actor_type: "user",
+          actor_id: user_id,
+          object_type: "collection",
+          object_id: collection.id,
+          audience: [user_id | member_ids]
+        })
 
-            {:noreply,
-             socket
-             |> assign(show_share_modal: false)
-             |> put_flash(:info, "Shared with #{email}")}
+        shares = Circles.list_shares_for_resource("collection", collection.id)
+        {:noreply, socket |> assign(shares: shares, show_share_modal: false) |> put_flash(:info, "Shared with #{circle.name}")}
 
-          {:error, _} ->
-            {:noreply, put_flash(socket, :error, "Failed to share")}
-        end
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to share")}
     end
+  end
+
+  def handle_event("unshare-circle", %{"circle-id" => circle_id}, socket) do
+    collection = socket.assigns.collection
+    Circles.unshare_with_circle(circle_id, "collection", collection.id)
+    shares = Circles.list_shares_for_resource("collection", collection.id)
+    {:noreply, assign(socket, shares: shares) |> put_flash(:info, "Access removed")}
   end
 
   defp format_size(nil), do: "-"
@@ -157,12 +160,19 @@ defmodule SingularityWeb.VaultLive.Show do
 
         <!-- Share modal -->
         <div :if={@show_share_modal} class="card bg-base-200">
-          <div class="card-body">
-            <h3 class="font-semibold">Share this collection</h3>
-            <form phx-submit="share-collection" class="flex gap-2 items-end">
+          <div class="card-body space-y-4">
+            <h3 class="font-semibold">Share with a circle</h3>
+            <div :if={@circles == []} class="text-sm text-base-content/60">
+              No circles yet. <.link navigate={~p"/circles"} class="link link-primary">Create one first</.link>.
+            </div>
+            <form :if={@circles != []} phx-submit="share-with-circle" class="flex gap-2 items-end">
               <div class="form-control flex-1">
-                <label class="label"><span class="label-text">User email</span></label>
-                <input type="email" name="email" class="input input-bordered input-sm" required />
+                <label class="label"><span class="label-text">Circle</span></label>
+                <select name="circle_id" class="select select-bordered select-sm">
+                  <option :for={circle <- @circles} value={circle.id}>
+                    {circle.name} ({length(circle.members)} members)
+                  </option>
+                </select>
               </div>
               <div class="form-control">
                 <label class="label"><span class="label-text">Access</span></label>
@@ -175,6 +185,19 @@ defmodule SingularityWeb.VaultLive.Show do
               <button type="submit" class="btn btn-primary btn-sm">Share</button>
               <button type="button" class="btn btn-ghost btn-sm" phx-click="toggle-share-modal">Cancel</button>
             </form>
+
+            <!-- Current shares -->
+            <div :if={@shares != []} class="pt-2 border-t border-base-300">
+              <p class="text-sm font-medium mb-2">Currently shared with:</p>
+              <div :for={share <- @shares} class="flex items-center gap-2 py-1">
+                <div class="w-3 h-3 rounded-full" style={"background-color: #{share.circle.color}"}></div>
+                <span class="text-sm flex-1">{share.circle.name}</span>
+                <span class="badge badge-sm badge-outline">{share.access_level}</span>
+                <button class="btn btn-ghost btn-xs" phx-click="unshare-circle" phx-value-circle-id={share.circle.id}>
+                  <.icon name="hero-x-mark" class="size-3" />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
